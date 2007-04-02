@@ -4,6 +4,10 @@
 
 base:          equ &8000
 
+; This value determines the number of steps the tiled background is drawn over
+; Use 4 for normal 6MHz SAM, with 2 or 1 only suitable for Mayhem accelerator
+tile_strips:   equ 4                ; default = 4 strips
+
 line_int:      equ 249              ; Line interrupt screen line (output)
 lmpr:          equ 250              ; Low Memory Page Register
 hmpr:          equ 251              ; High Memory Page Register
@@ -39,6 +43,7 @@ sprite_4:      equ &7d00
 sprite_5:      equ &7d80
 sprite_6:      equ &7e00
 sprite_7:      equ &7e80
+
 
                autoexec
 
@@ -429,6 +434,87 @@ do_tiles:
 tile_state:    ld  a,0              ; (self-modified value)
                inc a
                ld  (tile_state+1),a
+
+IF tile_strips == 1
+
+               and %00000001
+               jr  z,step_0
+               jr  step_1
+            
+step_0:        ld  b,28
+               ld  de,pac_chars
+               ld  hl,bak_chars1
+               call tile_comp
+               ld  hl,bak_chars1
+               call do_fruit
+               ld  hl,bak_chars1
+               call do_lives
+               ld  hl,bak_chars1
+               call do_score1
+               ld  hl,bak_chars1
+               jp  do_score2
+
+step_1:        ld  b,28
+               ld  de,pac_chars
+               ld  hl,bak_chars2
+               call tile_comp
+               ld  hl,bak_chars2
+               call do_fruit
+               ld  hl,bak_chars2
+               call do_lives
+               ld  hl,bak_chars2
+               call do_score1
+               ld  hl,bak_chars2
+               jp  do_score2
+
+ELSE IF tile_strips == 2
+
+               and %00000011
+               jr  z,step_0
+               dec a
+               jr  z,step_1
+               dec a
+               jr  z,step_2
+               jr  step_3
+            
+step_0:        ld  b,14
+               ld  de,pac_chars
+               ld  hl,bak_chars1
+               call tile_comp
+               ld  hl,bak_chars1
+               call do_fruit
+               ld  hl,bak_chars1
+               jp  do_lives
+
+step_1:        ld  b,14
+               ld  de,pac_chars
+               ld  hl,bak_chars2
+               call tile_comp
+               ld  hl,bak_chars2
+               call do_fruit
+               ld  hl,bak_chars2
+               jp  do_lives
+
+step_2:        ld  b,14
+               ld  de,pac_chars+(32*14)
+               ld  hl,bak_chars1+(32*14)
+               call tile_comp
+               ld  hl,bak_chars1
+               call do_score1
+               ld  hl,bak_chars1
+               jp  do_score2
+
+step_3:        ld  b,14
+               ld  de,pac_chars+(32*14)
+               ld  hl,bak_chars2+(32*14)
+               call tile_comp
+               ld  hl,bak_chars2
+               call do_score1
+               ld  hl,bak_chars2
+               jp  do_score2
+
+ELSE
+
                and %00000111
                jr  z,step_0
                dec a
@@ -500,6 +586,7 @@ step_7:        ld  b,7
                call tile_comp
                ld  hl,bak_chars2
                jp  do_score2
+ENDIF
 
 tile_comp:     call find_change
                dec sp               ; restore the same return address to here

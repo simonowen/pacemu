@@ -14,10 +14,9 @@ vmpr:          equ 252              ; Video Memory Page Register
 border:        equ 254              ; Border colour in bits 6, 2-0
 keyboard:      equ 254              ; Main keyboard matrix
 
-wprot:         equ %10000000        ; LMPR bit to write-protect first 16K
 rom0_off:      equ %00100000        ; LMPR bit to disable ROM 0
 mode_4:        equ %01100000        ; VMPR bits for mode 4
-pac_page:      equ 3+rom0_off+wprot
+pac_page:      equ 3+rom0_off
 screen_1:      equ 8+rom0_off
 screen_2:      equ 10+rom0_off
 sound_page:    equ 6+rom0_off
@@ -96,7 +95,7 @@ patch_rom:     ld  a,(&3019)
 
                in  a,(lmpr)
                ex  af,af'
-               ld  a,pac_page-wprot
+               ld  a,pac_page
                out (lmpr),a
 
                ld  hl,&0000         ; copy 8K of Pac-Man ROM code
@@ -170,7 +169,7 @@ hook_block:    push af
                ld  a,1
                out (hmpr),a
                call do_stuff
-               ld  a,pac_page-rom0_off-wprot+1
+               ld  a,pac_page-rom0_off+1
                out (hmpr),a
                pop af
                ret
@@ -249,7 +248,7 @@ int_chain:     jp  0                ; address completed by set_int_chain
 ; Prepare the Pac-Man interrupt handler address for our return - does an IM2-style
 ; lookup to determine the address for normal Pac-Man interrupt processing
 ;
-set_int_chain: ld  a,pac_page-wprot
+set_int_chain: ld  a,pac_page
                out (lmpr),a
 
                ld  a,i              ; bus value originally written to port &00

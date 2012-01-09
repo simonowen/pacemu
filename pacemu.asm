@@ -212,6 +212,7 @@ no_border:
                call do_tiles        ; update a portion of the background tiles
                call do_save         ; save under the new sprite positions
                call do_sprites      ; draw the 6 new masked sprites
+               call do_trim         ; trim sprites overlapping the screen edges
                call do_input        ; scan the joystick and DIP switches
                call do_sound        ; convert the sound to the SAA chip
 
@@ -773,7 +774,6 @@ draw_spr:      ld  a,h
                ret z                ; sprite palette all black
 
                call xy_to_addr
-               push hl
                jr  c,draw_shift
 
                call map_spr         ; map sprites to the correct orientation/colour
@@ -855,18 +855,6 @@ spr_loop:      exx
 
                exx
                djnz spr_loop
-
-post_trim:     pop hl
-
-               ld  a,l
-               cp  128
-               jr  c,draw_exit      ; sprites are never vertically even-aligned in the tunnels
-               cp  128+16+6
-               ld  l,16
-               call c,trim_tunnel   ; trim sprite against left tunnel
-               cp  128+106-6
-               ld  l,106
-               call nc,trim_tunnel  ; trim sprite against right tunnel
 
 draw_exit:     ld  a,pac_page
                out (lmpr),a
@@ -963,7 +951,118 @@ spr_loop2:     exx
 
                exx
                djnz spr_loop2
-               jr  post_trim
+               jp  draw_exit
+
+
+; Trim sprites that overlap the maze edges, as the real hardware does automatically
+;
+do_trim:       ld  hl,&5062         ; sprite x for first sprite
+               ld  de,&ff00         ; no trim yet
+               ld  b,7              ; 7 sprites to check
+
+trim_lp:       ld  a,(hl)           ; sprite x
+               inc l
+               cp  &10              ; hidden?
+               jr  c,trim_next
+               cp  &20              ; clipped at right edge?
+               jr  c,may_trim
+               cp  &f0              ; clipped at left edge?
+               jr  c,trim_next
+
+may_trim:      ld  a,(hl)           ; sprite y
+               cp  &10              ; hidden?
+               jr  c,trim_next
+
+               cp  d                ; compare min
+               jr  nc,no_trim_min
+               ld  d,a              ; update min
+no_trim_min:   cp  e                ; compare max
+               jr  c,trim_next
+               ld  e,a              ; update max
+               jr  trim_next
+
+trim_next:     inc l                ; skip sprite y
+               djnz trim_lp
+
+               ld  a,e              ; max
+               and a
+               jr  z,trim_exit      ; zero means no trim
+               sub d                ; subtract min to give block
+               add a,12             ; add sprite height to give span
+               rra                  ; /2 as we clear in even/odd pairs
+               ld  b,a              ; save pair count
+
+               ld  l,e              ; top line, due to mirrored y!
+               ld  h,y_conv/256
+               ld  h,(hl)           ; unmirror and scale to SAM line
+               srl h                ; y to screen MSB (forced to even line)
+
+               ld  a,(scr_page)
+               out (lmpr),a
+
+               xor a                ; clear byte
+               ld  de,&106a         ; D=left clear offset, E=right clear offset
+trim_lp2:      ld  l,d              ; left clear LSB
+
+               ld  (hl),a           ; clear forwards 6 bytes
+               inc l
+               ld  (hl),a
+               inc l
+               ld  (hl),a
+               inc l
+               ld  (hl),a
+               inc l
+               ld  (hl),a
+               inc l
+               ld  (hl),a
+
+               set 7,l              ; switch to odd lines
+
+               ld  (hl),a           ; clear back 6 bytes
+               dec l
+               ld  (hl),a
+               dec l
+               ld  (hl),a
+               dec l
+               ld  (hl),a
+               dec l
+               ld  (hl),a
+               dec l
+               ld  (hl),a
+
+               ld  l,e              ; right clear LSB
+
+               ld  (hl),a           ; clear forwards 6 bytes
+               inc l
+               ld  (hl),a
+               inc l
+               ld  (hl),a
+               inc l
+               ld  (hl),a
+               inc l
+               ld  (hl),a
+               inc l
+               ld  (hl),a
+
+               set 7,l              ; switch to odd lines
+
+               ld  (hl),a           ; clear back 6 bytes
+               dec l
+               ld  (hl),a
+               dec l
+               ld  (hl),a
+               dec l
+               ld  (hl),a
+               dec l
+               ld  (hl),a
+               dec l
+               ld  (hl),a
+               inc h
+               djnz trim_lp2
+
+trim_exit:     ld  a,pac_page
+               out (lmpr),a
+               ret
 
 
 map_spr:       ld  b,0
@@ -1015,47 +1114,6 @@ not_ghost:     cp  48               ; static images and SAM images
                add a,52             ; offset to flipped set
                ret                  ; pacman left/up
 
-;
-; Trim sprites that overlap the maze edges, as the real hardware does automatically
-;
-trim_tunnel:   ex  af,af'
-               ld  a,l
-               and %01111111
-               ld  e,a              ; even line position
-               or  %10000000
-               ld  d,a              ; odd line position
-               xor a
-               ld  b,7
-
-trim_lp:       ld  (hl),a
-               inc l
-               ld  (hl),a
-               inc l
-               ld  (hl),a
-               inc l
-               ld  (hl),a
-               inc l
-               ld  (hl),a
-               inc l
-               ld  (hl),a
-               ld  l,d
-               ld  (hl),a
-               inc l
-               ld  (hl),a
-               inc l
-               ld  (hl),a
-               inc l
-               ld  (hl),a
-               inc l
-               ld  (hl),a
-               inc l
-               ld  (hl),a
-               inc h
-               ld  l,e
-
-               djnz trim_lp
-               ex  af,af'
-               ret
 
 ;
 ; Clear a sprite-sized hole, used for blank tiles in our fruit and lives display
@@ -1645,7 +1703,6 @@ chk_fruit:     ld  e,&70            ; screen offset for fruit column
                sub &91
                srl a
                srl a
-               push hl
                jp  draw_spr2
 
 ;
@@ -1700,7 +1757,6 @@ chk_life:      ld  b,&40
                cp  64               ; blank?
                ret z
                ld  a,96
-               push hl
                jp  draw_spr2
 
 ;

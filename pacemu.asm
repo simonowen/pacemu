@@ -71,7 +71,7 @@ start:         di
 
                ld  hl,palette+15
                ld  bc,&10f8
-               defb &ed,&bb         ; set palette (this should be OTDR but Assembly Studio 8x gets it wrong!)
+               otdr                 ; set palette
 
                ld  hl,bak_chars1
                ld  bc,&0840

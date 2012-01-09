@@ -129,8 +129,6 @@ patch_rom:     ld  a,(&3019)
                ld  (&0038),a
                ld  hl,hook
                ld  (&0039),hl
-               ld  a,&c3            ; JP nn  (address completed by interrupt handler)
-               ld  (&003b),a
                ld  hl,&04d6         ; SUB 4 - restore original instruction in patched bootleg ROMs
                ld  (&3181),hl
 
@@ -230,6 +228,7 @@ no_border:
                xor a
                out (border),a
 
+               call set_int_chain   ; prepare interrupt handler chain
 
                pop hl
                pop de
@@ -244,13 +243,13 @@ no_border:
                pop bc
 
 old_stack:     ld  sp,0
-               ret                  ; return to the normal interrupt processing
+int_chain:     jp  0                ; address completed by set_int_chain
 
 
 ; Prepare the Pac-Man interrupt handler address for our return - does an IM2-style
 ; lookup to determine the address for normal Pac-Man interrupt processing
 ;
-do_inthndlr:   ld  a,pac_page-wprot
+set_int_chain: ld  a,pac_page-wprot
                out (lmpr),a
 
                ld  a,i              ; bus value originally written to port &00
@@ -260,7 +259,7 @@ do_inthndlr:   ld  a,pac_page-wprot
                inc hl
                ld  h,(hl)           ; handler high
                ld  l,a
-               ld  (&003c),hl       ; write into JP in interrupt handler
+               ld  (int_chain+1),hl ; write into JP in interrupt handler
 
                ret
 

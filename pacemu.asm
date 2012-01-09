@@ -8,7 +8,6 @@ base:          equ &8000
 ; Use 4 for normal 6MHz SAM, with 2 or 1 only suitable for Mayhem accelerator
 tile_strips:   equ 4                ; default = 4 strips
 
-line_int:      equ 249              ; Line interrupt screen line (output)
 lmpr:          equ 250              ; Low Memory Page Register
 hmpr:          equ 251              ; High Memory Page Register
 vmpr:          equ 252              ; Video Memory Page Register
@@ -77,9 +76,6 @@ start:         di
                ld  hl,palette+15
                ld  bc,&10f8
                defb &ed,&bb         ; set palette (this should be OTDR but Assembly Studio 8x gets it wrong!)
-
-               xor a
-               out (line_int),a     ; 2nd chance for missed interrupt
 
                ld  hl,bak_chars1
                ld  bc,&0840
@@ -238,7 +234,6 @@ sprite3_x:     ld  a,0              ; (self-modified value)
                xor a
                out (border),a
 
-               call wait_scr
 
                pop hl
                pop de
@@ -255,19 +250,7 @@ sprite3_x:     ld  a,0              ; (self-modified value)
 old_stack:     ld  sp,0
                ret                  ; return to the normal interrupt processing
 
-;
-; Make sure we're not in the main screen area
-wait_scr:      ld  bc,&01f8
-               ld  e,192
-wait_lp:       in  a,(c)
-               cp  e
-               jr  z,wait_lp
 
-               ld  b,8
-;              djnz $
-               ret
-
-;
 ; Prepare the Pac-Man interrupt handler address for our return - does an IM2-style
 ; lookup to determine the address for normal Pac-Man interrupt processing
 ;

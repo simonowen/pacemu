@@ -37,17 +37,17 @@ shift_data:    equ &db00            ; pre-shifted graphics data, built from spr_
 hook:          equ &391c            ; safe ROM location for our intrerrupt hook, to fix Hangly Man
 
 ; address of saved sprite block followed by the data itself
-sprite_2:      equ &7c00
-sprite_3:      equ &7c80
-sprite_4:      equ &7d00
-sprite_5:      equ &7d80
-sprite_6:      equ &7e00
-sprite_7:      equ &7e80
-
 
                autoexec
 
                org base
+spr_save_2:    equ &6000
+spr_save_3:    equ spr_save_2+2+7*12
+spr_save_4:    equ spr_save_3+2+7*12
+spr_save_5:    equ spr_save_4+2+7*12
+spr_save_6:    equ spr_save_5+2+7*12
+spr_save_7:    equ spr_save_6+2+7*12
+spr_save_end:  equ spr_save_7+2+7*12
                dump $
                jr  start
 
@@ -1131,7 +1131,6 @@ blank_lp:      ld  (hl),a
 
                ret
 
-;
 ; Save the background screen behind locations we're about to draw active sprites
 ;
 do_save:       ld  hl,(&5062)
@@ -1149,27 +1148,27 @@ do_save:       ld  hl,(&5062)
                ld  a,(scr_page)
                out (lmpr),a
 
-               ld  de,sprite_7
+               ld  de,spr_save_7
                call spr_save
 
                pop hl
-               ld  de,sprite_6
+               ld  de,spr_save_6
                call spr_save
 
                pop hl
-               ld  de,sprite_5
+               ld  de,spr_save_5
                call spr_save
 
                pop hl
-               ld  de,sprite_4
+               ld  de,spr_save_4
                call spr_save
 
                pop hl
-               ld  de,sprite_3
+               ld  de,spr_save_3
                call spr_save
 
                pop hl
-               ld  de,sprite_2
+               ld  de,spr_save_2
                call spr_save
 
                ld  a,pac_page
@@ -1178,11 +1177,12 @@ do_save:       ld  hl,(&5062)
 
 ; Save a single sprite-sized block, if visible
 spr_save:      ld  a,h
-               cp  16
-               ret c                ; off bottom of screen
+               cp  &10              ; off bottom?
+               ret c
                ld  a,l
-               cp  16
-               ret c                ; off right of screen
+               inc a                ; catch 255 as invalid
+               cp  &11              ; off right?
+               ret c
 
                call xy_to_addr      ; convert to SAM coords
 
@@ -1193,22 +1193,25 @@ spr_save:      ld  a,h
                inc l
                ex  de,hl
 
-               ld  c,255            ; ensure B remains unchanged in LDIs below
-               ld  a,l
-               and %01111111        ; always start on even line number
-               ld  l,a
-               ld  b,a
-               or  %10000000
-;
-               ldi      ; 0
+               ld  c,7*12           ; 7 bytes for each 12 lines
+
+               ld  a,l              ; assume even for now
+               ld  b,l
+               set 7,b              ; force odd
+               cp  b                ; same as other?
+               jr  nz,save_even     ; jump if even start
+               and %01111111        ; force even
+               jp  save_odd         ; odd start
+
+save_even:     ldi      ; 0
                ldi
                ldi
                ldi
                ldi
                ldi
                ldi
-               ld  l,a
-               ldi      ; 1
+               ld  l,b
+save_odd:      ldi      ; 1
                ldi
                ldi
                ldi
@@ -1216,7 +1219,7 @@ spr_save:      ld  a,h
                ldi
                ldi
                inc h
-               ld  l,b
+               ld  l,a
                ldi      ; 2
                ldi
                ldi
@@ -1224,7 +1227,7 @@ spr_save:      ld  a,h
                ldi
                ldi
                ldi
-               ld  l,a
+               ld  l,b
                ldi      ; 3
                ldi
                ldi
@@ -1233,7 +1236,7 @@ spr_save:      ld  a,h
                ldi
                ldi
                inc h
-               ld  l,b
+               ld  l,a
                ldi      ; 4
                ldi
                ldi
@@ -1241,7 +1244,7 @@ spr_save:      ld  a,h
                ldi
                ldi
                ldi
-               ld  l,a
+               ld  l,b
                ldi      ; 5
                ldi
                ldi
@@ -1250,7 +1253,7 @@ spr_save:      ld  a,h
                ldi
                ldi
                inc h
-               ld  l,b
+               ld  l,a
                ldi      ; 6
                ldi
                ldi
@@ -1258,7 +1261,7 @@ spr_save:      ld  a,h
                ldi
                ldi
                ldi
-               ld  l,a
+               ld  l,b
                ldi      ; 7
                ldi
                ldi
@@ -1267,7 +1270,7 @@ spr_save:      ld  a,h
                ldi
                ldi
                inc h
-               ld  l,b
+               ld  l,a
                ldi      ; 8
                ldi
                ldi
@@ -1275,7 +1278,7 @@ spr_save:      ld  a,h
                ldi
                ldi
                ldi
-               ld  l,a
+               ld  l,b
                ldi      ; 9
                ldi
                ldi
@@ -1284,7 +1287,7 @@ spr_save:      ld  a,h
                ldi
                ldi
                inc h
-               ld  l,b
+               ld  l,a
                ldi      ; 10
                ldi
                ldi
@@ -1292,7 +1295,8 @@ spr_save:      ld  a,h
                ldi
                ldi
                ldi
-               ld  l,a
+               ld  l,b
+               ld  b,0  ; BC is now the remaining count
                ldi      ; 11
                ldi
                ldi
@@ -1300,8 +1304,9 @@ spr_save:      ld  a,h
                ldi
                ldi
                ldi
+               ret po   ; skip last line if even start
                inc h
-               ld  l,b
+               ld  l,a
                ldi      ; 12
                ldi
                ldi
@@ -1309,7 +1314,6 @@ spr_save:      ld  a,h
                ldi
                ldi
                ldi
-
                ret
 
 ;
@@ -1318,17 +1322,17 @@ spr_save:      ld  a,h
 do_restore:    ld  a,(scr_page)
                out (lmpr),a
 
-               ld  hl,sprite_2
+               ld  hl,spr_save_2
                call spr_restore
-               ld  hl,sprite_3
+               ld  hl,spr_save_3
                call spr_restore
-               ld  hl,sprite_4
+               ld  hl,spr_save_4
                call spr_restore
-               ld  hl,sprite_5
+               ld  hl,spr_save_5
                call spr_restore
-               ld  hl,sprite_6
+               ld  hl,spr_save_6
                call spr_restore
-               ld  hl,sprite_7
+               ld  hl,spr_save_7
                call spr_restore
 
                ld  a,pac_page
@@ -1346,22 +1350,25 @@ spr_restore:   ld  a,(hl)
                ld  d,(hl)           ; restore address high
                inc l
 
-               ld  c,255            ; ensure B remains unchanged in LDIs below
-               ld  a,e
-               and %01111111
-               ld  e,a
-               ld  b,a
-               or  %10000000
-;
-               ldi      ; 0
+               ld  c,7*12           ; 7 bytes for each 12 lines
+
+               ld  a,e              ; assume even for now
+               ld  b,e
+               set 7,b              ; force odd
+               cp  b                ; same as other?
+               jr  nz,restore_even  ; jump if even start
+               and %01111111        ; force even
+               jp  restore_odd      ; odd start
+
+restore_even:  ldi      ; 0
                ldi
                ldi
                ldi
                ldi
                ldi
                ldi
-               ld  e,a
-               ldi      ; 1
+               ld  e,b
+restore_odd:   ldi      ; 1
                ldi
                ldi
                ldi
@@ -1369,7 +1376,7 @@ spr_restore:   ld  a,(hl)
                ldi
                ldi
                inc d
-               ld  e,b
+               ld  e,a
                ldi      ; 2
                ldi
                ldi
@@ -1377,7 +1384,7 @@ spr_restore:   ld  a,(hl)
                ldi
                ldi
                ldi
-               ld  e,a
+               ld  e,b
                ldi      ; 3
                ldi
                ldi
@@ -1386,7 +1393,7 @@ spr_restore:   ld  a,(hl)
                ldi
                ldi
                inc d
-               ld  e,b
+               ld  e,a
                ldi      ; 4
                ldi
                ldi
@@ -1394,7 +1401,7 @@ spr_restore:   ld  a,(hl)
                ldi
                ldi
                ldi
-               ld  e,a
+               ld  e,b
                ldi      ; 5
                ldi
                ldi
@@ -1403,7 +1410,7 @@ spr_restore:   ld  a,(hl)
                ldi
                ldi
                inc d
-               ld  e,b
+               ld  e,a
                ldi      ; 6
                ldi
                ldi
@@ -1411,7 +1418,7 @@ spr_restore:   ld  a,(hl)
                ldi
                ldi
                ldi
-               ld  e,a
+               ld  e,b
                ldi      ; 7
                ldi
                ldi
@@ -1420,7 +1427,7 @@ spr_restore:   ld  a,(hl)
                ldi
                ldi
                inc d
-               ld  e,b
+               ld  e,a
                ldi      ; 8
                ldi
                ldi
@@ -1428,7 +1435,7 @@ spr_restore:   ld  a,(hl)
                ldi
                ldi
                ldi
-               ld  e,a
+               ld  e,b
                ldi      ; 9
                ldi
                ldi
@@ -1437,7 +1444,7 @@ spr_restore:   ld  a,(hl)
                ldi
                ldi
                inc d
-               ld  e,b
+               ld  e,a
                ldi      ; 10
                ldi
                ldi
@@ -1445,7 +1452,8 @@ spr_restore:   ld  a,(hl)
                ldi
                ldi
                ldi
-               ld  e,a
+               ld  e,b
+               ld  b,0  ; BC is now the remaining count
                ldi      ; 11
                ldi
                ldi
@@ -1453,8 +1461,9 @@ spr_restore:   ld  a,(hl)
                ldi
                ldi
                ldi
+               ret po   ; skip last line if even start
                inc d
-               ld  e,b
+               ld  e,a
                ldi      ; 12
                ldi
                ldi
@@ -1462,11 +1471,9 @@ spr_restore:   ld  a,(hl)
                ldi
                ldi
                ldi
-
                ret
 
 
-;
 ; Draw the currently visible sprites, in the correct order for overlaps
 ;
 do_sprites:    ld  hl,(&506c)

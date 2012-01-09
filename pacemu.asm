@@ -81,16 +81,13 @@ space_lp:      ld  (hl),c           ; fill tile copy with spaces
                inc h
                djnz space_lp
 
+               ld  sp,&4c00         ; stack in spare RAM
                jp  0                ; start the Pac-Man ROM!
 
 palette:       defb 0,127,34,123,85,106,110,96,6,68,29,25,99,122,122,119
 
 
-patch_rom:     ld  a,(&3019)
-               cp  &af
-               ret z                ; return if ROM already patched
-
-               in  a,(lmpr)
+patch_rom:     in  a,(lmpr)
                ex  af,af'
                ld  a,pac_page
                out (lmpr),a
@@ -116,8 +113,9 @@ patch_rom:     ld  a,(&3019)
                ld  bc,hook_end-hook_block
                ldir
 
-               ld  a,&56
+               ld  a,&56            ; ED *56*
                ld  (&233c),a        ; change IM 2 to IM 1
+
                ld  hl,&47ed
                ld  (&233f),hl       ; change OUT (&00),A to LD I,A
                ld  (&3183),hl
@@ -125,6 +123,7 @@ patch_rom:     ld  a,(&3019)
                ld  (&0038),a
                ld  hl,hook
                ld  (&0039),hl
+
                ld  hl,&04d6         ; SUB 4 - restore original instruction in patched bootleg ROMs
                ld  (&3181),hl
 
@@ -135,22 +134,21 @@ patch_rom:     ld  a,(&3019)
                ld  (&238a),a
                ld  (&3194),a
                ld  (&3248),a
-               ld  a,&af            ; xor a, to disable ROM checksum check
-               ld  (&3019),a
+
                ld  a,1              ; start clearing at &5001, to avoid DIP overwrite
-               ld  (&2353),a
                ld  (&230c),a
                ld  (&2353),a
                ld  a,7              ; shorten block clear after start adjustment above
                ld  (&230f),a
                ld  (&2357),a
+
                ld  a,&41            ; start clearing at &5041, to avoid DIP overwrite
                ld  (&2363),a
                ld  a,&3f            ; shorten block clear after start adjustment above
                ld  (&2366),a
 
-               ld  a,6              ; LD B,n
-               ld  (&30cf),a        ; prevent RAM being completely wiped
+               ld  a,&b0
+               ld  (&3ffa),a        ; skip memory test (actual code starts &3000)
 
                ld  hl,&e0f6         ; OR %11100000, so random numbers are sourced from a clean 8K copy of the ROM
                ld  (&2a2d),hl       ; (failure to do this breaks known maze patterns as the blue ghosts use it!)

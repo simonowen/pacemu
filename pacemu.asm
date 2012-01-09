@@ -6,6 +6,7 @@ base:          equ &8000
 
 full_redraw:   equ 0                ; set to 1 on the Mayhem accelerator
 
+status:        equ 249              ; Status register and extended key matrix
 lmpr:          equ 250              ; Low Memory Page Register
 hmpr:          equ 251              ; High Memory Page Register
 vmpr:          equ 252              ; Video Memory Page Register
@@ -365,18 +366,17 @@ not_1:         rra
 not_2:         rra
                jr  c,not_3
                res 5,d              ; 3 = coin 1
-               jr  do_arrows
+               jr  done_1235
 not_3:         rra
                rra
-               jr  c,do_arrows
+               jr  c,done_1235
                res 5,d              ; 5 = coin 1
+done_1235:
 
-do_arrows:     ld  a,&ff
+               ld  a,&ff
                in  a,(keyboard)
                rra
-               jr  c,not_cntrl
-               nop                  ; Cntrl = speed-up cheat, soon?
-not_cntrl:     rra
+               rra
                jr  c,not_up
                res 0,d              ; up
 not_up:        rra
@@ -388,18 +388,82 @@ not_down:      rra
 not_left:      rra
                jr  c,not_right
                res 2,d              ; right
+not_right:
+               ld  a,&ef
+               in  a,(keyboard)
+               cpl
+               and %00011111
+               jr  z,not_67890
+               rra
+               rra
+               jr  nc,not_9
+               res 0,d              ; 9 = up
+not_9:         rra
+               jr  nc,not_8
+               res 3,d              ; 8 = down
+not_8:         rra
+               jr  nc,not_7
+               res 2,d              ; 7 = right
+not_7:         rra
+               jr  nc,not_67890
+               res 1,d              ; 6 = left
+not_67890:
+               ld  a,&fb
+               in  a,(keyboard)
+               rra
+               jr  c,not_q
+               res 0,d              ; Q = up
+not_q:
+               ld  a,&fd
+               in  a,(keyboard)
+               rra
+               jr  c,not_a
+               res 3,d              ; A = down
+not_a:
+               ld  a,&df
+               in  a,(keyboard)
+               rra
+               jr  c,not_p
+               res 2,d              ; P = right
+not_p:         rra
+               jr  c,not_o
+               res 1,d              ; O = left
+not_o:
 
-not_right:     ld  a,&fb
-               in  a,(249)
+               ld  a,&fb
+               in  a,(status)
                rla
                jr  c,not_f9
                res 4,d              ; f9 = rack test
+not_f9:
+               ld  a,d              ; dip including controls
+               cpl                  ; invert so set=pressed
+               and %00001111        ; keep only direction bits
+               jr  z,joy_done       ; skip if nothing pressed
+               ld  c,a
+               neg
+               and c                ; keep least significant set bit
+               cp  c                ; was it the only bit?
+               jr  z,joy_done       ; skip if so
 
-not_f9:        ld  a,d
-               ld  (&5000),a
+               ld  a,(last_controls); last valid (single) controls
+               xor c                ; check for differences
+               or  %11110000        ; convert to mask
+               ld  c,a
+               ld  a,d              ; current controls
+               or  %00001111        ; release all directions
+               and c                ; press the changed key
+               jr  joy_multi        ; apply change but don't save
+
+joy_done:      ld  a,d
+               ld  (last_controls),a; update last valid controls
+               ld  a,d              ; use original value
+joy_multi:     ld  (&5000),a
                ld  a,e
                ld  (&5040),a
                ret
+
+last_controls: defb 0
 
 
 ; Check sprite visibility, returns carry if any visible, no-carry if all hidden

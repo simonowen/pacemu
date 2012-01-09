@@ -210,14 +210,10 @@ no_border:
                call flash_maze      ; flash the end of level maze
                call flash_pills     ; flash the power pills
 
-               ld  hl,&5062
-               ld  a,(hl)
-               ld  (sprite2_x+1),a  ; save sprite 1 x-coord
-               inc (hl)             ; offset 1 pixel to the left (mirrored)
-               ld  hl,&5064
-               ld  a,(hl)
-               ld  (sprite3_x+1),a  ; save sprite 2 x-coord
-               inc (hl)             ; offset 1 pixel to the left
+               ld  hl,&5062         ; sprite 1 x
+               inc (hl)             ; offset 1 pixel left (mirrored)
+               ld  hl,&5064         ; sprite 2 x
+               inc (hl)
 
                call do_restore      ; restore under the old sprites
                call do_tiles        ; update a portion of the background tiles
@@ -226,10 +222,10 @@ no_border:
                call do_input        ; scan the joystick and DIP switches
                call do_sound        ; convert the sound to the SAA chip
 
-sprite2_x:     ld  a,0              ; (self-modified value)
-               ld  (&5062),a        ; restore sprite 1 x-coord
-sprite3_x:     ld  a,0              ; (self-modified value)
-               ld  (&5064),a        ; restore sprite 2 x-coord
+               ld  hl,&5062         ; sprite 1 x
+               dec (hl)             ; reverse change from above
+               ld  hl,&5064         ; sprite 2 x
+               dec (hl)
 
                xor a
                out (border),a

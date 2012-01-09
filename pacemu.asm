@@ -4,9 +4,7 @@
 
 base:          equ &8000
 
-; This value determines the number of steps the tiled background is drawn over
-; Use 4 for normal 6MHz SAM, with 2 or 1 only suitable for Mayhem accelerator
-tile_strips:   equ 4                ; default = 4 strips
+full_redraw:   equ 0                ; set to 1 on the Mayhem accelerator
 
 lmpr:          equ 250              ; Low Memory Page Register
 hmpr:          equ 251              ; High Memory Page Register
@@ -26,8 +24,6 @@ pac_header:    equ &43c0            ; 64 bytes containing the score
 pac_chars:     equ &4040            ; start of main Pac-Man display (skipping the score rows)
 pac_footer:    equ &4000            ; credit and fruit display
 
-bak_chars1:    equ &a040            ; copy of Pac-Man display for screen 1
-bak_chars2:    equ &a440            ; copy of Pac-Man display for screen 2
 tile_data:     equ &ac00            ; background tile graphics data
 spr_data:      equ &be00            ; sprite graphics data
 shift_data:    equ &db00            ; pre-shifted graphics data, built from spr_data
@@ -404,166 +400,166 @@ not_f9:        ld  a,d
                ld  (&5040),a
                ret
 
-;
+
+; Check sprite visibility, returns carry if any visible, no-carry if all hidden
+is_visible:    ld  a,&10            ; minimum x/y position to be visible
+               ld  b,7              ; 7 sprites to check
+               ld  hl,&5062
+vis_lp:        cp  (hl)
+               ret c
+               inc l
+               cp  (hl)
+               ret c
+               inc l
+               inc l
+               inc l
+               djnz vis_lp
+               ret
+
 ; Draw the background tile changes, in 8 steps over the 2 double-buffered screens
 ;
-do_tiles:
-tile_state:    ld  a,0              ; (self-modified value)
-               inc a
-               ld  (tile_state+1),a
+do_tiles:      call is_visible      ; set carry state for below
 
-IF tile_strips == 1
+tile_state:    ld  a,(scr_page)
+               bit 1,a              ; NZ if screen_2 is active
 
-               and %00000001
-               jr  z,step_0
-               jr  step_1
-            
-step_0:        ld  b,28
-               ld  de,pac_chars
-               ld  hl,bak_chars1
-               call tile_comp
-               ld  hl,bak_chars1
-               call do_fruit
-               ld  hl,bak_chars1
-               call do_lives
-               ld  hl,bak_chars1
-               call do_score1
-               ld  hl,bak_chars1
-               jp  do_score2
-
-step_1:        ld  b,28
-               ld  de,pac_chars
-               ld  hl,bak_chars2
-               call tile_comp
-               ld  hl,bak_chars2
-               call do_fruit
-               ld  hl,bak_chars2
-               call do_lives
-               ld  hl,bak_chars2
-               call do_score1
-               ld  hl,bak_chars2
-               jp  do_score2
-
-ELSE IF tile_strips == 2
-
-               and %00000011
-               jr  z,step_0
-               dec a
-               jr  z,step_1
-               dec a
-               jr  z,step_2
-               jr  step_3
-            
-step_0:        ld  b,14
-               ld  de,pac_chars
-               ld  hl,bak_chars1
-               call tile_comp
-               ld  hl,bak_chars1
-               call do_fruit
-               ld  hl,bak_chars1
-               jp  do_lives
-
-step_1:        ld  b,14
-               ld  de,pac_chars
-               ld  hl,bak_chars2
-               call tile_comp
-               ld  hl,bak_chars2
-               call do_fruit
-               ld  hl,bak_chars2
-               jp  do_lives
-
-step_2:        ld  b,14
-               ld  de,pac_chars+(32*14)
-               ld  hl,bak_chars1+(32*14)
-               call tile_comp
-               ld  hl,bak_chars1
-               call do_score1
-               ld  hl,bak_chars1
-               jp  do_score2
-
-step_3:        ld  b,14
-               ld  de,pac_chars+(32*14)
-               ld  hl,bak_chars2+(32*14)
-               call tile_comp
-               ld  hl,bak_chars2
-               call do_score1
-               ld  hl,bak_chars2
-               jp  do_score2
-
-ELSE
-
-               and %00000111
-               jr  z,step_0
-               dec a
-               jr  z,step_1
-               dec a
-               jr  z,step_2
-               dec a
-               jr  z,step_3
-               dec a
-               jr  z,step_4
-               dec a
-               jr  z,step_5
-               dec a
-               jr  z,step_6
-               jr  step_7
-
-step_0:        ld  b,7
-               ld  de,pac_chars
-               ld  hl,&a040
-               call tile_comp
-               ld  hl,bak_chars1
-               jp  do_fruit
-
-step_1:        ld  b,7
-               ld  de,pac_chars
-               ld  hl,&a440
-               call tile_comp
-               ld  hl,bak_chars2
-               jp  do_fruit
-
-step_2:        ld  b,7
-               ld  de,pac_chars+(32*7)
-               ld  hl,&a040+(32*7)
-               call tile_comp
-               ld  hl,bak_chars1
-               jp  do_lives
-
-step_3:        ld  b,7
-               ld  de,pac_chars+(32*7)
-               ld  hl,&a440+(32*7)
-               call tile_comp
-               ld  hl,bak_chars2
-               jp  do_lives
-
-step_4:        ld  b,7
-               ld  de,pac_chars+(32*14)
-               ld  hl,&a040+(32*14)
-               call tile_comp
-               ld  hl,bak_chars1
-               jp  do_score1
-
-step_5:        ld  b,7
-               ld  de,pac_chars+(32*14)
-               ld  hl,&a440+(32*14)
-               call tile_comp
-               ld  hl,bak_chars2
-               jp  do_score1
-
-step_6:        ld  b,7
-               ld  de,pac_chars+(32*21)
-               ld  hl,&a040+(32*21)
-               call tile_comp
-               ld  hl,bak_chars1
-               jp  do_score2
-
-step_7:        ld  b,7
-               ld  de,pac_chars+(32*21)
-               ld  hl,&a440+(32*21)
-               call tile_comp
-               ld  hl,bak_chars2
-               jp  do_score2
+IF full_redraw == 0
+               jp  c,tile_strips    ; if any sprites are visible we'll draw in strips
 ENDIF
+               jr  z,fulldraw_alt  ; full screen draw (alt)
+
+
+fulldraw_norm: ld  b,28
+               ld  de,pac_chars
+               ld  hl,bak_chars1-pac_footer
+               add hl,de
+               call tile_comp
+
+               ld  hl,bak_chars1
+               call do_fruit
+               ld  hl,bak_chars1
+               call do_lives
+               ld  hl,bak_chars1
+               call do_score1
+               ld  hl,bak_chars1
+               jp  do_score2
+
+fulldraw_alt:  ld  b,28
+               ld  de,pac_chars
+               ld  hl,bak_chars2-pac_footer
+               add hl,de
+               call tile_comp
+
+               ld  hl,bak_chars2
+               call do_fruit
+               ld  hl,bak_chars2
+               call do_lives
+               ld  hl,bak_chars2
+               call do_score1
+               ld  hl,bak_chars2
+               jp  do_score2
+
+tile_strips:   jp  z,strip_odd
+strip_even:    jp  strip_0
+
+strip_0:       ld  b,7
+               ld  de,pac_chars+(32*7*0)
+               ld  hl,bak_chars1-pac_footer
+               add hl,de
+               call tile_comp
+               ld  hl,strip_1
+               ld  (strip_even+1),hl
+               ret
+
+strip_1:       ld  b,7
+               ld  de,pac_chars+(32*7*1)
+               ld  hl,bak_chars1-pac_footer
+               add hl,de
+               call tile_comp
+               ld  hl,strip_2
+               ld  (strip_even+1),hl
+               ret
+
+strip_2:       ld  b,7
+               ld  de,pac_chars+(32*7*2)
+               ld  hl,bak_chars1-pac_footer
+               add hl,de
+               call tile_comp
+               ld  hl,strip_3
+               ld  (strip_even+1),hl
+               ret
+
+strip_3:       ld  b,7
+               ld  de,pac_chars+(32*7*3)
+               ld  hl,bak_chars1-pac_footer
+               add hl,de
+               call tile_comp
+               ld  hl,strip_4
+               ld  (strip_even+1),hl
+               ret
+
+strip_4:       ld  hl,bak_chars1
+               call do_score1
+               ld  hl,bak_chars1
+               call do_score2
+               ld  hl,bak_chars1
+               call do_fruit
+               ld  hl,bak_chars1
+               call do_lives
+               ld  hl,strip_0
+               ld  (strip_even+1),hl
+               ret
+
+strip_odd:     jp  strip_0_alt
+
+strip_0_alt:   ld  b,7
+               ld  de,pac_chars+(32*7*0)
+               ld  hl,bak_chars2-pac_footer
+               add hl,de
+               call tile_comp
+               ld  hl,strip_1_alt
+               ld  (strip_odd+1),hl
+               ret
+
+strip_1_alt:   ld  b,7
+               ld  de,pac_chars+(32*7*1)
+               ld  hl,bak_chars2-pac_footer
+               add hl,de
+               call tile_comp
+               ld  hl,strip_2_alt
+               ld  (strip_odd+1),hl
+               ret
+
+strip_2_alt:   ld  b,7
+               ld  de,pac_chars+(32*7*2)
+               ld  hl,bak_chars2-pac_footer
+               add hl,de
+               call tile_comp
+               ld  hl,strip_3_alt
+               ld  (strip_odd+1),hl
+               ret
+
+strip_3_alt:   ld  b,7
+               ld  de,pac_chars+(32*7*3)
+               ld  hl,bak_chars2-pac_footer
+               add hl,de
+               call tile_comp
+               ld  hl,strip_4_alt
+               ld  (strip_odd+1),hl
+               ret
+
+strip_4_alt:   ld  hl,bak_chars2
+               call do_score1
+               ld  hl,bak_chars2
+               call do_score2
+               ld  hl,bak_chars2
+               call do_fruit
+               ld  hl,bak_chars2
+               call do_lives
+               ld  hl,strip_0_alt
+               ld  (strip_odd+1),hl
+               ret
+
 
 tile_comp:     call find_change
                dec sp               ; restore the same return address to here
@@ -2284,6 +2280,8 @@ special_tab:   defs &100
 fruit:         defs &100
 
 tile_table:    defs &200
+bak_chars1:    defs &400            ; copy of Pac-Man display for screen_1
+bak_chars2:    defs &400            ; copy of Pac-Man display for screen_2
 
 textcol_tab:   defs &10
 

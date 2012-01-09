@@ -2315,7 +2315,10 @@ mdat "tiles.bin"
 mdat "sprites.bin"
 
                dump 3,0
-mdat "pacman.rom"                   ; 16K, formed from ROMs 6e+6f+6h+6j
+mdat "pacman.6e"
+mdat "pacman.6f"
+mdat "pacman.6h"
+mdat "pacman.6j"
 
                dump 6,0
 mdat "sound.bin"

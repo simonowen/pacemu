@@ -2,7 +2,6 @@
 ;
 ; WWW: http://simonowen.com/sam/pacemu/
 
-base:          equ &8000
 
 full_redraw:   equ 0                ; set to 1 on the Mayhem accelerator
 
@@ -33,10 +32,6 @@ int_hook:      equ &3000            ; interrupt hook paging code goes where the 
 text_hook:     equ &3010            ; the text address fix follows it
 
 ; address of saved sprite block followed by the data itself
-
-               autoexec
-
-               org base
 spr_save_2:    equ &6000
 spr_save_3:    equ spr_save_2+2+7*12
 spr_save_4:    equ spr_save_3+2+7*12
@@ -44,8 +39,11 @@ spr_save_5:    equ spr_save_4+2+7*12
 spr_save_6:    equ spr_save_5+2+7*12
 spr_save_7:    equ spr_save_6+2+7*12
 spr_save_end:  equ spr_save_7+2+7*12
+
+               org &8000
                dump $
-               jr  start
+               autoexec
+start:         jr  start2
 
 dip_5000:      defb %11111111       ; c21tdrlu     c=credit, 2=coin2, 1=coin1, t=rack test on/off ; down, right, left, up
                                     ; rack test off, nothing else signalled
@@ -54,7 +52,7 @@ dip_5040:      defb %11111111       ; c--sdrlu     c=cocktail/upright ; s=servic
 dip_5080:      defb %11001001       ; -dbbllcc      d=hard/normal bb=bonus life at 10K/15K/20K/none ; ll=1/2/3/5 lives ; cc=freeplay/1coin1credit/1coin2credits/2coins1credit
                                     ; normal, bonus life at 10K, 3 lives, 1 coin 1 credit
 
-start:         di
+start2:        di
 
                call patch_rom       ; patch DIP fixed and hook us into the interrupt handling
                call mk_lookups      ; create all the look-up tables
@@ -75,8 +73,8 @@ start:         di
                otdr                 ; set palette
 
                ld  hl,bak_chars1
-               ld  bc,&0840
-space_lp:      ld  (hl),c           ; fill tile copy with spaces
+               ld  bc,&0840         ; fill &800 tiles with &40 (space)
+space_lp:      ld  (hl),c
                inc l
                jr  nz,space_lp
                inc h
@@ -157,7 +155,7 @@ patch_rom:     in  a,(lmpr)
                ld  a,&b0
                ld  (&3ffa),a        ; skip memory test (actual code starts &3000)
 
-               ld  hl,&e0f6         ; OR %11100000, so random numbers are sourced from a clean 8K copy of the ROM
+               ld  hl,&e0f6         ; OR %11100000, to source random numbers from a clean copy of the ROM at &e000
                ld  (&2a2d),hl       ; (failure to do this breaks known maze patterns as the blue ghosts use it!)
 
                ld  a,&cd            ; CALL nn
@@ -197,7 +195,6 @@ int_thunk:     push af
 int_thunk_len: equ $-int_thunk
 
 
-;
 ; Do everything we need to update video/sound/input
 ;
 int_handler:   ld  (old_stack+1),sp
@@ -273,7 +270,7 @@ set_int_chain: ld  a,pac_page
 
                ret
 
-;
+
 ; Flip to show the screen prepared during the last frame, and prepare to draw the next
 ;
 do_flip:       ld  a,(scr_page)     ; current back-screen page
@@ -290,7 +287,7 @@ do_flip:       ld  a,(scr_page)     ; current back-screen page
 
 scr_page:      defb screen_1
 
-;
+
 ; Set the maze palette colour by detecting the attrbute used for the maze white
 ; We also need to remove the crypt, as the real attribute wipe does.
 ;
@@ -308,7 +305,7 @@ maze_blue:     ld  bc,&0bf8
                out (c),a
                ret
 
-;
+
 ; Set the power pill palette colour to the correct state by reading the 6 known
 ; pill locations, and checking the current attribute setting.
 ;
@@ -364,7 +361,7 @@ pill_on:       ld  bc,&0ef8
                out (c),l
                ret
 
-;
+
 ; Scan the input DIP switches for joystick movement and button presses
 ;
 do_input:      ld  de,&ffff
@@ -683,14 +680,15 @@ tile_cont:     ex  af,af'
                pop bc
 
                jr  c,next_tile      ; skip deferred updates
+
                ld  (hl),c           ; update the changed tile in the copy
 
 next_tile:     ld  a,e
                and %00011111
                ld  c,a
-               add a,a
-               add a,a
-               add a,c
+               add a,a              ; *2
+               add a,a              ; *4
+               add a,c              ; *5
                add a,3
 
                ld  ixl,a
@@ -757,7 +755,7 @@ tile_exit:     ld  a,pac_page
                ret
 
 ; Handle coloured tiles: text and ghost tiles in different colours
-special_tile:  cp  176
+special_tile:  cp  &b0
                jr  nc,ghost_tile
 
                ld  a,b
@@ -836,7 +834,7 @@ ghost_tile:    ld  a,b
                add hl,bc
                jp  not_text         ; orange ghost
 
-;
+
 ; Draw a 12x12 mask sprite
 ;
 draw_spr:      ld  a,h
@@ -937,7 +935,7 @@ draw_exit:     ld  a,pac_page
                out (lmpr),a
                ret
 
-;
+
 ; Draw a sprite at a an odd x-coordinate, using pre-shifted graphics data
 ;
 draw_shift:    call map_spr         ; map sprites to the correct orientation/colour
@@ -1192,7 +1190,6 @@ not_ghost:     cp  48               ; static images and SAM images
                ret                  ; pacman left/up
 
 
-;
 ; Clear a sprite-sized hole, used for blank tiles in our fruit and lives display
 ;
 blank_sprite:  ld  a,(scr_page)
@@ -1654,7 +1651,7 @@ do_score1:     inc h
 
                ret
 
-;
+
 do_score2:     inc h
                inc h
                inc h                ; advance to header area containing score
@@ -1712,7 +1709,7 @@ chk_digit:     ld  b,&43
                pop hl
                ret
 
-;
+
 ; Draw changes to the fruit display, which is remapped to a vertical layout
 ; We use the sprite versions of the tiles, for easier drawing :-)
 ;
@@ -1760,8 +1757,8 @@ do_fruit:      ld  l,5
 
                ret
 
-chk_fruit:     ld  e,&70            ; screen offset for fruit column
-               ld  b,&40
+chk_fruit:     ld  e,&70            ; SAM screen offset for fruit column
+               ld  b,pac_footer/256 ; Pac-Man fruit display
                ld  c,l
                ld  a,(bc)
                cp  (hl)
@@ -1774,15 +1771,15 @@ chk_fruit:     ld  e,&70            ; screen offset for fruit column
                call blank_sprite
                pop hl
                ex  af,af'
-               cp  64               ; blank?
+               cp  &40              ; blank?
                ret z
 
-               sub &91
-               srl a
-               srl a
+               sub &91              ; first fruit tile number (then 4 for each)
+               srl a                ; /2
+               srl a                ; /4
                jp  draw_spr2
 
-;
+
 ; Draw changes to the number of remaining lives
 ;
 do_lives:      ld  l,&1b
@@ -1836,16 +1833,16 @@ chk_life:      ld  b,&40
                ld  a,96
                jp  draw_spr2
 
-;
+
 ; Initialise the SAA 1099 chip, enabling the voices we need (silent initially)
 ;
-sound_init:    ld  bc,&1ff
+sound_init:    ld  bc,&01ff
 
-               ld  a,28
-               out (c),a
+               ld  a,28             ; chip enable
+               out (c),a            ; register select
                ld  a,b
                dec b
-               out (c),a
+               out (c),a            ; data
                inc b
 
                ld  a,20
@@ -1855,27 +1852,27 @@ sound_init:    ld  bc,&1ff
                out (c),a
                inc b
 
-               xor a
+               xor a                ; voice 0
                ld  e,a
+               out (c),e            ; LSB
+               dec b
+               out (c),a            ; MSB
+               inc b
+
+               ld  e,2              ; voice 2
                out (c),e
                dec b
                out (c),a
                inc b
 
-               ld  e,2
-               out (c),e
-               dec b
-               out (c),a
-               inc b
-
-               ld  e,4
+               ld  e,4              ; voice 4
                out (c),e
                dec b
                out (c),a
 
                ret
 
-;
+
 ; Map the current sound chip frequencies to the SAA
 ;
 do_sound:      ld  hl,&5051         ; voice 0 freq and volume
@@ -1910,19 +1907,19 @@ map_sound:     ld  b,a              ; save waveform
                add a,a
                add a,a
                add a,a
-               add a,a
+               add a,a              ; to high nibble
                ld  e,a
                inc hl
                ld  a,(hl)
-               and %00001111
+               and %00001111        ; keep low nibble
                ld  d,a
                inc hl
                ld  a,(hl)
                add a,a
                add a,a
                add a,a
-               add a,a
-               or  d
+               add a,a              ; to high nibble
+               or  d                ; combine to complete byte
                ld  d,a
                or  e                ; check for zero frequency
                inc hl
@@ -1944,11 +1941,11 @@ not_silent:    ld  c,a
                cp  5                ; waveform used when eating ghost?
                jr  z,eat_sound      ; don't divide freq by 8
 
-               srl h
+               srl h                ; /2
                rr  l
-               srl h
+               srl h                ; /4
                rr  l
-               srl h
+               srl h                ; /8
                rr  l
 
 eat_sound:     ld  a,sound_page
@@ -1966,7 +1963,7 @@ eat_sound:     ld  a,sound_page
                ret
 
 ; Update a single voice, setting the volume, note and octave
-play_sound:    ld  bc,&1ff          ; sound register port
+play_sound:    ld  bc,&01ff         ; SAA 1099 sound register port
 
                out (c),a            ; volume register
                dec b
@@ -1986,7 +1983,6 @@ play_sound:    ld  bc,&1ff          ; sound register port
                ret
 
 
-;
 ; Create the look-up tables used to speed up various calculations
 ;
 mk_lookups:    ld  bc,conv_8_6
@@ -2179,7 +2175,7 @@ text_3:        ld  (hl),l
 
                ret
 
-;
+
 ; Map a Pac-Man screen coordinate to a SAM display address, scaling down from 8x8 to 6x6 as we go
 ;
 xy_to_addr:    ld  b,y_conv/256
@@ -2196,7 +2192,7 @@ xy_to_addr:    ld  b,y_conv/256
 
 
                defs -$\256          ; align to next 256-byte boundary
-;
+
 ; Scan a 32-byte block for changes, used for fast scanning of the Pac-Man display
 ; Aligned on a 256-byte boundary for easy resuming of the scanning
 find_change:   ld  a,(de)   ; 0
@@ -2364,7 +2360,7 @@ find_change:   ld  a,(de)   ; 0
                ld  a,(de)   ; 27
                cp  (hl)
                ret nz
-              inc e
+               inc e
                inc l
 
                ld  a,(de)   ; 28
@@ -2399,7 +2395,7 @@ find_change:   ld  a,(de)   ; 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-length:        equ $ - base         ; code length
+length:        equ $ - start        ; code length
 
                defs -$\256          ; the tables below must be 256-byte aligned
 
@@ -2416,6 +2412,7 @@ tile_table:    defs &200
 bak_chars1:    defs &400            ; copy of Pac-Man display for screen_1
 bak_chars2:    defs &400            ; copy of Pac-Man display for screen_2
 
+
 textcol_tab:   defs &10
 
                defs &80             ; 128 bytes of stack space - should be plenty
@@ -2423,10 +2420,10 @@ new_stack:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-               dump 1,&2c00
+               dump &ac00
 mdat "tiles.bin"
 
-               dump 1,&3e00
+               dump &be00
 mdat "sprites.bin"
 
                dump 3,0

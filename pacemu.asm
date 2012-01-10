@@ -29,7 +29,7 @@ tile_data:     equ &ac00            ; background tile graphics data
 spr_data:      equ &be00            ; sprite graphics data
 shift_data:    equ &db00            ; pre-shifted graphics data, built from spr_data
 
-hook:          equ &391c            ; safe ROM location for our intrerrupt hook, to fix Hangly Man
+int_hook:      equ &3000            ; interrupt hook paging code goes where the RAM test was
 
 ; address of saved sprite block followed by the data itself
 
@@ -108,9 +108,9 @@ patch_rom:     in  a,(lmpr)
                dec a
                out (lmpr),a         ; restore Pac-Man ROM
 
-               ld  hl,hook_block
-               ld  de,hook
-               ld  bc,hook_end-hook_block
+               ld  hl,int_thunk
+               ld  de,int_hook
+               ld  bc,int_thunk_len
                ldir
 
                ld  a,&56            ; ED *56*
@@ -119,9 +119,10 @@ patch_rom:     in  a,(lmpr)
                ld  hl,&47ed
                ld  (&233f),hl       ; change OUT (&00),A to LD I,A
                ld  (&3183),hl
-               ld  a,&cd            ; CALL nn
+
+               ld  a,&c3            ; JP nn
                ld  (&0038),a
-               ld  hl,hook
+               ld  hl,int_hook      ; interrupt hook
                ld  (&0039),hl
 
                ld  hl,&04d6         ; SUB 4 - restore original instruction in patched bootleg ROMs
@@ -158,23 +159,23 @@ patch_rom:     in  a,(lmpr)
                ret
 
 ;
-; Our interrupt hook handler, to gain control each frame
+; The interrupt hook needs to page us in and out around the call to our handler
 ;
-hook_block:    push af
+int_thunk:     push af
                ld  a,1
                out (hmpr),a
-               call do_stuff
+               call int_handler
                ld  a,pac_page-rom0_off+1
                out (hmpr),a
                pop af
                ret
-hook_end:
+int_thunk_len: equ $-int_thunk
 
 
 ;
 ; Do everything we need to update video/sound/input
 ;
-do_stuff:      ld  (old_stack+1),sp
+int_handler:   ld  (old_stack+1),sp
                ld  sp,new_stack
 
                push bc
@@ -197,7 +198,6 @@ do_stuff:      ld  (old_stack+1),sp
                ld  a,1
                out (border),a
 no_border:
-               call do_inthndlr     ; prepare Pac-Man interrupt handler address
 ;              call do_flip         ; show last frame, prepare for new one
                call flash_maze      ; flash the end of level maze
                call flash_pills     ; flash the power pills

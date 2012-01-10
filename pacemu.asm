@@ -204,26 +204,17 @@ int_handler:   ld  (old_stack+1),sp
                ld  sp,new_stack
 
                push bc
-               call do_flip
                push de
                push hl
                push ix
-               push iy
                ex  af,af'
-               push af
                exx
+               push af
                push bc
                push de
                push hl
 
-               ld  a,&ff
-               in  a,(keyboard)
-               rra
-               jr  c,no_border
-               ld  a,1
-               out (border),a
-no_border:
-;              call do_flip         ; show last frame, prepare for new one
+               call do_flip         ; show last frame
                call flash_maze      ; flash the end of level maze
                call flash_pills     ; flash the power pills
 
@@ -235,7 +226,7 @@ no_border:
                call do_restore      ; restore under the old sprites
                call do_tiles        ; update a portion of the background tiles
                call do_save         ; save under the new sprite positions
-               call do_sprites      ; draw the 6 new masked sprites
+               call do_sprites      ; draw the 6 sprites
                call do_trim         ; trim sprites overlapping the screen edges
                call do_input        ; scan the joystick and DIP switches
                call do_sound        ; convert the sound to the SAA chip
@@ -253,10 +244,9 @@ no_border:
                pop hl
                pop de
                pop bc
-               exx
                pop af
                ex  af,af'
-               pop iy
+               exx
                pop ix
                pop hl
                pop de

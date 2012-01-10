@@ -1658,15 +1658,15 @@ do_score2:     inc h
                inc h                ; advance to header area containing score
 
                ld  l,&c7
-               ld  de,&0072
+               ld  de,&0075
                call chk_digit       ; 2
 
                ld  l,&c6
-               ld  de,&0075
+               ld  de,&0078
                call chk_digit       ; U
 
                ld  l,&c5
-               ld  de,&0078
+               ld  de,&007b
                call chk_digit       ; P
 
 

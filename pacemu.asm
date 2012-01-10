@@ -710,8 +710,8 @@ next_tile:     ld  a,e
 draw_tile:     ld  c,a              ; save for later
                add a,a
                ld  l,a
-               ld  a,tile_table/256
-               adc a,0
+               adc a,tile_table/256
+               sub l
                ld  h,a
                ld  a,(hl)
                inc l
@@ -1208,11 +1208,11 @@ not_ghost:     cp  48               ; static images and SAM images
 blank_sprite:  ld  a,(scr_page)
                out (lmpr),a
 
-               ld  a,l
-               and %01111111
-               ld  e,a              ; even line position
-               or  %10000000
-               ld  d,a              ; odd line position
+               ld  e,l
+               res 7,e              ; even SAM line
+               ld  d,l
+               set 7,d              ; odd SAM line
+
                xor a
                ld  b,6
 

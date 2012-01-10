@@ -165,6 +165,10 @@ patch_rom:     in  a,(lmpr)
                ld  hl,text_hook     ; fix bit 7 being set in screen writes
                ld  (&2c63),hl
 
+               ld  a,&dc            ; CALL C,nn
+               ld  (&0353),a        ; disable 1UP/2UP flashing to save cycles
+               ld  (&035e),a
+
                ex  af,af'
                out (lmpr),a
                ret

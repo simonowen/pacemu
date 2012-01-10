@@ -838,11 +838,12 @@ ghost_tile:    ld  a,b
 ; Draw a 12x12 mask sprite
 ;
 draw_spr:      ld  a,h
-               cp  16
-               ret c                ; off bottom of screen
+               cp  &10              ; off bottom?
+               ret c
                ld  a,l
-               cp  16
-               ret c                ; off right of screen
+               inc a                ; catch 255 as invalid
+               cp  &11              ; off right?
+               ret c
 
                ld  a,d
                and a

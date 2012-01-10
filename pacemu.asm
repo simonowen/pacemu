@@ -30,6 +30,7 @@ spr_data:      equ &be00            ; sprite graphics data
 shift_data:    equ &db00            ; pre-shifted graphics data, built from spr_data
 
 int_hook:      equ &3000            ; interrupt hook paging code goes where the RAM test was
+text_hook:     equ &3010            ; the text address fix follows it
 
 ; address of saved sprite block followed by the data itself
 
@@ -113,6 +114,11 @@ patch_rom:     in  a,(lmpr)
                ld  bc,int_thunk_len
                ldir
 
+               ld  hl,text_fix
+               ld  de,text_hook
+               ld  bc,text_fix_len
+               ldir
+
                ld  a,&56            ; ED *56*
                ld  (&233c),a        ; change IM 2 to IM 1
 
@@ -154,11 +160,26 @@ patch_rom:     in  a,(lmpr)
                ld  hl,&e0f6         ; OR %11100000, so random numbers are sourced from a clean 8K copy of the ROM
                ld  (&2a2d),hl       ; (failure to do this breaks known maze patterns as the blue ghosts use it!)
 
+               ld  a,&cd            ; CALL nn
+               ld  (&2c62),a
+               ld  hl,text_hook     ; fix bit 7 being set in screen writes
+               ld  (&2c63),hl
+
                ex  af,af'
                out (lmpr),a
                ret
 
+; The original ROM code relies on memory mirroring ignoring bit 15 of the address.
+; To avoid corrupting upper memory we must reset the bit before using it.
 ;
+text_fix:      ld  e,(hl)
+               inc hl
+               ld  d,(hl)
+               res 7,d
+               ret
+text_fix_len:  equ $-text_fix
+
+
 ; The interrupt hook needs to page us in and out around the call to our handler
 ;
 int_thunk:     push af

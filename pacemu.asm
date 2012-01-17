@@ -5,6 +5,38 @@
 debug:         equ 0                ; non-zero to show task time in border
 full_redraw:   equ 0                ; non-zero for the Mayhem accelerator
 
+; Memory map
+;
+; Page 1 (8000-bfff during interrupt handling)
+; 0000-2bff - emulation code + run-time generated look-up tables
+; 2c00-3dff - tile graphics
+; 3e00-3fff - sprite graphics (unshifted)
+;
+; Page 2 (c000-ffff during interrupt handling)
+; 0000-1aaf - sprite graphics (unshifted)
+; 1ab0-1baf - unused
+; 1b00-37af - sprite graphics (shifted)
+; 37b0-3fff - unused
+;
+; Page 3 (0000-3fff during game)
+; 0000-3fff - Pac-Man ROM
+;
+; Page 4 (4000-7fff during game)
+; 0000-10ff - Pac-Man display, I/O and working RAM
+; 1100-3fff - unused
+;
+; Page 5 (c000-ffff during game)
+; 0000-1fff - unused
+; 2000-3fff - unmodified copy of first 8K of Pac-Man ROM
+;
+; Page 6 (0000-3fff for sound processing)
+; 0000-3fff - Sound frequency to SAA oct+note look-up table
+;
+; Page 8+9 and 10+11 (0000-7fff during graphics drawing)
+; 0000-5fff - mode 4 display
+; 6000-6203 - restore data for area under sprites
+; 6204-7fff - unused
+
 status:        equ 249              ; Status register and extended key matrix
 lmpr:          equ 250              ; Low Memory Page Register
 hmpr:          equ 251              ; High Memory Page Register
@@ -107,7 +139,7 @@ patch_rom:     in  a,(lmpr)
                out (lmpr),a         ; move up 16K
 
                ld  hl,&2000         ; copy the copied block
-               ld  de,&6000         ; forward another 16K
+               ld  de,&6000         ; to last 8K of page 5
                ld  bc,&2000
                ldir
 

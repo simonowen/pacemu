@@ -2,8 +2,8 @@
 ;
 ; WWW: http://simonowen.com/sam/pacemu/
 
-
-full_redraw:   equ 0                ; set to 1 on the Mayhem accelerator
+debug:         equ 0                ; non-zero to show task time in border
+full_redraw:   equ 0                ; non-zero for the Mayhem accelerator
 
 status:        equ 249              ; Status register and extended key matrix
 lmpr:          equ 250              ; Low Memory Page Register
@@ -219,13 +219,40 @@ int_handler:   ld  (old_stack+1),sp
                inc (hl)             ; offset 1 pixel left (mirrored)
                ld  hl,&5064         ; sprite 2 x
                inc (hl)
-
+IF debug
+  ld a,1
+  out (border),a
+ENDIF
                call do_restore      ; restore under the old sprites
+IF debug
+  ld a,2
+  out (border),a
+ENDIF
                call do_tiles        ; update a portion of the background tiles
+IF debug
+  ld a,3
+  out (border),a
+ENDIF
                call do_save         ; save under the new sprite positions
+IF debug
+  ld a,4
+  out (border),a
+ENDIF
                call do_sprites      ; draw the 6 sprites
+IF debug
+  ld a,5
+  out (border),a
+ENDIF
                call do_trim         ; trim sprites overlapping the screen edges
+IF debug
+  ld a,6
+  out (border),a
+ENDIF
                call do_input        ; scan the joystick and DIP switches
+IF debug
+  ld a,7
+  out (border),a
+ENDIF
                call do_sound        ; convert the sound to the SAA chip
 
                ld  hl,&5062         ; sprite 1 x

@@ -65,8 +65,15 @@ start2:        di
                ld  (&5000),a
                ld  a,(dip_5040)
                ld  (&5040),a
+
+               ld  a,&fb
+               in  a,(status)
+               rla                  ; NC if F9 pressed
+
                ld  a,(dip_5080)
-               ld  (&5080),a
+               jr  c,not_hard
+               and %10111111        ; set Hard difficulty
+not_hard:      ld  (&5080),a
 
                ld  hl,palette+15
                ld  bc,&10f8

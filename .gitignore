@@ -1,3 +1,4 @@
-.*
-!.gitignore
+dist/
 pacemu.dsk
+pacemu.sym
+pacemu-master.dsk

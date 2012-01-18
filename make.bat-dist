@@ -25,6 +25,8 @@ goto end
 :got_roms
 copy /b disk.base+pacman.6e+pacman.6f+pacman.6h+pacman.6j pacemu.dsk
 
-start pacemu.dsk
+echo.
+echo pacemu.mgt is ready to launch in SimCoupe, or transfer to floppy!
+echo.
 
 :end

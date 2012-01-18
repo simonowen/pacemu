@@ -9,7 +9,7 @@ ROMS=pacman.6e pacman.6f pacman.6h pacman.6j
 #sprites.bin: sprites.png
 #	./png2bin.pl $< 12
 
-$(DISK): pacemu.asm tiles.bin sprites.bin $(ROMS)
+$(DISK): pacemu.asm sound.bin sprites.bin tiles.bin $(ROMS)
 	pyz80.py --exportfile=pacemu.sym pacemu.asm
 
 dist:

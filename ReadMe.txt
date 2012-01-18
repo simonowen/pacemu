@@ -1,7 +1,7 @@
 Pac-Man Emulator for SAM Coupe (v1.2)
 -------------------------------------
 
-The Pac-Man ROMs cannot be supplied with this program, so you must provide
+The Pac-Man ROMs cannot be distributed with this program, so you must provide
 your own copies of the following files (from the Midway ROM set):
 
   pacman.6e pacman.6f pacman.6h pacman.6j
@@ -16,7 +16,7 @@ Enjoy!
 
 ---
 
-Version 1.2 (2012/01/17)
+Version 1.2 (2012/01/18)
 - Improved sprite draw/restore/clip code for extra speed
 - Faster tile updates when no sprites are visible
 - Added boot-time selection of Hard difficulty

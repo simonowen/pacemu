@@ -1,6 +1,6 @@
-; Pac-Man hardware emulation for the SAM Coupe (v1.1)
+; Pac-Man hardware emulation for the SAM Coupe (v1.2)
 ;
-; WWW: http://simonowen.com/sam/pacemu/
+; http://simonowen.com/sam/pacemu/
 
 debug:         equ 0                ; non-zero to show task time in border
 full_redraw:   equ 0                ; non-zero for the Mayhem accelerator

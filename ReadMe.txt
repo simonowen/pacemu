@@ -1,4 +1,4 @@
-Pac-Man Emulator for SAM Coupe (v1.2)
+Pac-Man Emulator for SAM Coupe (v1.3)
 -------------------------------------
 
 The Pac-Man ROMs cannot be distributed with this program, so you must provide
@@ -16,6 +16,9 @@ Enjoy!
 
 ---
 
+Version 1.3 (2012/08/04)
+- Added screen clear for compatibility with ROMs that skip RAM wipe
+
 Version 1.2 (2012/01/18)
 - Improved sprite draw/restore/clip code for extra speed
 - Faster tile updates when no sprites are visible
@@ -24,7 +27,6 @@ Version 1.2 (2012/01/18)
 - Improved control handling, favouring latest direction change
 - Skip RAM-check for faster startup
 - Easier method to add ROMs to form final disk image
-
 
 Version 1.1a (2004/10/09)
 - Added build-time control of tile strip count, for Mayhem accelerator

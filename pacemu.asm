@@ -85,10 +85,12 @@ dip_5080:      defb %11001001       ; -dbbllcc      d=hard/normal bb=bonus life 
                                     ; normal, bonus life at 10K, 3 lives, 1 coin 1 credit
 
 start2:        di
+               ld  sp,new_stack
 
                call patch_rom       ; patch DIP fixed and hook us into the interrupt handling
                call mk_lookups      ; create all the look-up tables
                call sound_init      ; enable sound chip
+               call clear_scrs      ; clear both screen buffers
 
                ld  a,pac_page
                out (lmpr),a
@@ -2239,6 +2241,28 @@ text_3:        ld  (hl),l
                ld  de,textcol_tab
                ld  bc,16
                ldir                 ; copy text colour table to page boundary
+
+               ret
+
+
+clear_scrs:    ld  a,(scr_page)
+               out (lmpr),a
+
+               ld  hl,0
+               ld  de,1
+               ld  (hl),l           ; zero fill
+               ld  bc,&61ff
+               ldir                 ; clear first screen upwards
+
+               xor screen_1 ^ screen_2
+               out (lmpr),a
+
+               dec de
+               dec e
+               ld  (hl),c           ; zero fill
+               ld  b,h
+               ld  c,l
+               lddr                 ; clear second screen downwards
 
                ret
 

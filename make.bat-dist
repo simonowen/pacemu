@@ -26,7 +26,7 @@ goto end
 copy /b disk.base+pacman.6e+pacman.6f+pacman.6h+pacman.6j pacemu.dsk
 
 echo.
-echo pacemu.mgt is ready to launch in SimCoupe, or transfer to floppy!
+echo pacemu.dsk is ready to launch in SimCoupe, or transfer to floppy!
 echo.
 
 :end

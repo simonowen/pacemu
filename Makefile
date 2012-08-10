@@ -12,6 +12,9 @@ ROMS=pacman.6e pacman.6f pacman.6h pacman.6j
 $(DISK): pacemu.asm sound.bin sprites.bin tiles.bin $(ROMS)
 	pyz80.py --exportfile=pacemu.sym pacemu.asm
 
+run: $(DISK)
+	open $(DISK)
+
 dist:
 	rm -rf dist
 	mkdir dist

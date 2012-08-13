@@ -7,6 +7,8 @@ rem png2bin.pl tiles.png 6
 rem png2bin.pl sprites.png 12
 
 pyz80.py --exportfile=pacemu.sym pacemu.asm
+if errorlevel 1 goto end
+if "%1"=="run" start pacemu.dsk
 goto end
 
 :dist

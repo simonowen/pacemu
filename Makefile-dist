@@ -1,8 +1,8 @@
-DISK=pacemu.dsk
+NAME=pacemu
 ROMS=pacman.6e pacman.6f pacman.6h pacman.6j
 
-$(DISK): disk.base $(ROMS)
-	cat disk.base $(ROMS) > $(DISK)
+$(NAME).dsk: disk.base $(ROMS)
+	cat disk.base $(ROMS) > $(NAME).dsk
 
 clean:
-	rm -f $(DISK)
+	rm -f $(NAME).dsk

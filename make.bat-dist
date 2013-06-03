@@ -1,4 +1,6 @@
 @echo off
+setlocal
+set NAME=pacemu
 
 if not exist pacman.6e goto missing
 if not exist pacman.6f goto missing     
@@ -15,7 +17,7 @@ echo must provide your own copies of:
 echo.
 echo   pacman.6e pacman.6f pacman.6h pacman.6j
 echo.
-echo Copy them to this directory and re-run to generate: pacemu.dsk
+echo Copy them to this directory and re-run to generate: %NAME%.dsk
 echo.
 echo ****************************************************************
 echo.
@@ -23,10 +25,11 @@ pause
 goto end
 
 :got_roms
-copy /b disk.base+pacman.6e+pacman.6f+pacman.6h+pacman.6j pacemu.dsk
+copy /b disk.base+pacman.6e+pacman.6f+pacman.6h+pacman.6j %NAME%.dsk
 
 echo.
-echo pacemu.dsk is ready to launch in SimCoupe, or transfer to floppy!
+echo %NAME%.dsk is ready to launch in SimCoupe, or transfer to floppy!
 echo.
 
 :end
+endlocal

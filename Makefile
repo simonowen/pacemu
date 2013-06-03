@@ -1,5 +1,6 @@
-DISK=pacemu.dsk
+NAME=pacemu
 ROMS=pacman.6e pacman.6f pacman.6h pacman.6j
+UNAME := $(shell uname -s)
 
 .PHONY: dist clean
 
@@ -9,13 +10,17 @@ ROMS=pacman.6e pacman.6f pacman.6h pacman.6j
 #sprites.bin: sprites.png
 #	./png2bin.pl $< 12
 
-$(DISK): pacemu.asm sound.bin sprites.bin tiles.bin $(ROMS)
-	pyz80.py --exportfile=pacemu.sym pacemu.asm
+$(NAME).dsk: $(NAME).asm sound.bin sprites.bin tiles.bin $(ROMS)
+	pyz80.py -I samdos2 --exportfile=$(NAME).sym $(NAME).asm
 
-run: $(DISK)
-	open $(DISK)
+run: $(NAME).dsk
+ifeq ($(UNAME),Darwin)
+	open $(NAME).dsk
+else
+	xdg-open $(NAME).dsk
+endif
 
-dist:
+dist: $(NAME).dsk
 	rm -rf dist
 	mkdir dist
 	cp ReadMe.txt dist/
@@ -25,7 +30,7 @@ dist:
 	mv disk.base dist/
 
 clean:
-	rm -f $(DISK) pacemu.sym
+	rm -f $(NAME).dsk $(NAME).sym
 #	rm -f tiles.bin sprites.bin
 	rm -f disk.base
 	rm -rf dist

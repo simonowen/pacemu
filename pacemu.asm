@@ -906,7 +906,7 @@ ghost_tile:    ld  a,b
 ; Draw a 12x12 mask sprite
 ;
 draw_spr:      ld  a,h
-               cp  &10              ; off bottom?
+               cp  &11              ; off bottom?
                ret c
                ld  a,l
                inc a                ; catch 255 as invalid

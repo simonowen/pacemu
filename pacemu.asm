@@ -56,6 +56,10 @@ pac_header:    equ &43c0            ; 64 bytes containing the score
 pac_chars:     equ &4040            ; start of main Pac-Man display (skipping the score rows)
 pac_footer:    equ &4000            ; credit and fruit display
 
+pac_ypos:      equ &4d08            ; Pac-Man y position (as viewed)
+pac_xpos:      equ &4d09            ; Pac-Man x position (as viewed)
+pac_dir:       equ &4d30            ; Pac-Man facing direction (0=right, 1=down, 2=left, 3=up)
+
 tile_data:     equ &ac00            ; background tile graphics data
 spr_data:      equ &be00            ; sprite graphics data
 shift_data:    equ &db00            ; pre-shifted graphics data, built from spr_data
@@ -507,7 +511,6 @@ not_p:         rra
                jr  c,not_o
                res 1,d              ; O = left
 not_o:
-
                ld  a,&fb
                in  a,(status)
                rla
@@ -515,6 +518,21 @@ not_o:
                res 4,d              ; f9 = rack test
 not_f9:
                ld  a,d              ; dip including controls
+               ld  c,%00000110      ; left+right
+               and c                ; both pressed?
+               jr  nz,not_lr        ; jump if not
+               ld  a,d
+               or  c                ; release left+right
+               ld  d,a
+not_lr:        ld  a,d
+               ld  c,%00001001      ; up+down
+               and c                ; both pressed?
+               jr  nz,not_ud        ; jump if not
+               ld  a,d
+               or  c                ; release up+down
+               ld  d,a
+not_ud:
+               ld  a,d
                cpl                  ; invert so set=pressed
                and %00001111        ; keep only direction bits
                jr  z,joy_done       ; skip if nothing pressed
@@ -524,24 +542,48 @@ not_f9:
                cp  c                ; was it the only bit?
                jr  z,joy_done       ; skip if so
 
-               ld  a,(last_controls); last valid (single) controls
-               xor c                ; check for differences
-               or  %11110000        ; convert to mask
-               ld  c,a
-               ld  a,d              ; current controls
-               or  %00001111        ; release all directions
-               and c                ; press the changed key
-               jr  joy_multi        ; apply change but don't save
+               ld  a,(pac_dir)      ; facing direction (r/d/l/u)
+               bit 1,a
+               rra
+               ld  c,&07            ; position mask for tile offset
+               jr  c,face_ud
+
+face_lr:       ld  a,(pac_xpos)     ; x position
+               jr  z,face_r         ; (from bit test above)
+face_l:        set 1,d              ; release left
+               and c                ; mask to tile offset
+               cp  5                ; entering junction?
+               jr  c,joy_done       ; if not we're done
+ignore_ud:     set 0,d              ; release up
+               set 3,d              ; release down
+               jr  joy_done
+
+face_r:        set 2,d              ; release right
+               and c
+               cp  4                ; entering junction?
+               jr  c,ignore_ud      ; if so, ignore up+down
+               jr  joy_done
+
+face_ud:       ld  a,(pac_ypos)     ; y position
+               jr  z,face_d         ; (from bit test above)
+face_u:        set 0,d              ; release up
+               and c
+               cp  4                ; entering junction?
+               jr  nc,joy_done      ; if not we're done
+ignore_lr:     set 1,d              ; release left
+               set 2,d              ; release right
+               jr  joy_done
+
+face_d:        set 3,d              ; release down
+               and c
+               cp  5                ; entering junction?
+               jr  nc,ignore_lr     ; if so, ignore left+right
 
 joy_done:      ld  a,d
-               ld  (last_controls),a; update last valid controls
-               ld  a,d              ; use original value
 joy_multi:     ld  (&5000),a
                ld  a,e
                ld  (&5040),a
                ret
-
-last_controls: defb 0
 
 
 ; Check sprite visibility, returns carry if any visible, no-carry if all hidden

@@ -1,4 +1,4 @@
-; Pac-Man hardware emulation for the SAM Coupe (v1.3)
+; Pac-Man hardware emulation for the SAM Coupe (v1.4)
 ;
 ; http://simonowen.com/sam/pacemu/
 

@@ -1,4 +1,4 @@
-Pac-Man Emulator for SAM Coupe (v1.3)
+Pac-Man Emulator for SAM Coupe (v1.4)
 -------------------------------------
 
 The Pac-Man ROMs cannot be distributed with this program, so you must provide
@@ -15,6 +15,9 @@ or combine manually using:
 Enjoy!
 
 ---
+
+Version 1.4 (2014/03/01)
+- Added support for diagonal control inputs from keyboard and 8-way joysticks
 
 Version 1.3 (2012/08/04)
 - Added screen clear for compatibility with ROMs that skip RAM wipe

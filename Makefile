@@ -11,7 +11,7 @@ UNAME := $(shell uname -s)
 #	./png2bin.pl $< 12
 
 $(NAME).dsk: $(NAME).asm sound.bin sprites.bin tiles.bin $(ROMS)
-	pyz80.py -I samdos2 --exportfile=$(NAME).sym $(NAME).asm
+	pyz80.py -s length -I samdos2 --exportfile=$(NAME).sym $(NAME).asm
 
 run: $(NAME).dsk
 ifeq ($(UNAME),Darwin)

@@ -7,7 +7,7 @@ if "%1"=="clean" goto clean
 rem png2bin.pl tiles.png 6
 rem png2bin.pl sprites.png 12
 
-pyz80.py -I samdos2 --exportfile=%NAME%.sym %NAME%.asm
+pyz80.py -s length -I samdos2 --exportfile=%NAME%.sym %NAME%.asm
 if errorlevel 1 goto end
 
 if "%1"=="dist" goto dist

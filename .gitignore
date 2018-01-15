@@ -1,5 +1,9 @@
+.vscode
 dist/
 pacemu.dsk
-pacemu.sym
+pacemu.map
 pacemu-master.dsk
 pacman.6?
+sprites.pal
+sprites.bin
+tiles.bin

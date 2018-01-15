@@ -113,8 +113,9 @@ start2:        di
                and %10111111        ; set Hard difficulty
 not_hard:      ld  (&5080),a
 
-               ld  hl,palette+15
-               ld  bc,&10f8
+               ld  hl,palette_end-1
+               ld  b,palette_end-palette
+               ld  c,&f8
                otdr                 ; set palette
 
                ld  hl,bak_chars1
@@ -128,8 +129,8 @@ space_lp:      ld  (hl),c
                ld  sp,&4c00         ; stack in spare RAM
                jp  0                ; start the Pac-Man ROM!
 
-palette:       defb 0,127,34,123,85,106,110,96,6,68,29,25,99,122,122,119
-
+palette:       MDAT "sprites.pal"   ; from tile2sam.py
+palette_end:
 
 patch_rom:     in  a,(lmpr)
                ex  af,af'

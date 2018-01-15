@@ -14,6 +14,9 @@ sprites.bin: sprites.png
 tiles.bin: tiles.png sprites.bin
 	tile2sam.py -q --tiles 252 --clut sprites.pal tiles.png 6x6
 
+sound.bin:
+	./freq.py sound.bin
+
 run: $(NAME).dsk
 ifeq ($(UNAME),Darwin)
 	open $(NAME).dsk
@@ -31,5 +34,5 @@ dist: $(NAME).dsk
 
 clean:
 	rm -f $(NAME).dsk $(NAME).map
-	rm -f tiles.bin sprites.bin
+	rm -f tiles.bin sprites.bin sound.bin
 	rm -rf dist

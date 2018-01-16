@@ -6,7 +6,7 @@ if "%1"=="clean" goto clean
 
 set CLUT=0,127,34,123,85,106,110,96,6,68,29,25,99,122,126,119
 tile2sam.py -q --tiles 102 --clut %CLUT% --pal sprites.png 12x12
-tile2sam.py -q --tiles 252 --clut sprites.pal tiles.png 6x6
+tile2sam.py -q --tiles 252 --clut %CLUT% tiles.png 6x6
 
 if not exist sound.bin freq.py sound.bin
 
@@ -27,12 +27,12 @@ remove_rom.py pacemu-master.dsk dist\disk.base
 goto end
 
 :clean
-if exist %NAME%.dsk del %NAME%.dsk %NAME%.map
-if exist tiles.bin del sprites.bin tiles.bin
-if exist sound.bin del sound.bin
-if exist dist\ del dist\ReadMe.txt dist\Makefile dist\make.bat dist\disk.base
-if exist dist\%NAME%.dsk del dist\%NAME%.dsk
-if exist dist\ rmdir dist
+del /q %NAME%.dsk %NAME%.map 2>nul
+del /q sprites.bin tiles.bin 2>nul
+del /q  sound.bin 2>nul
+del /q dist\ReadMe.txt dist\Makefile dist\make.bat dist\disk.base 2>nul
+del /q dist\%NAME%.dsk 2>nul
+rmdir dist 2>nul
 
 :end
 endlocal

@@ -44,6 +44,29 @@ vmpr:          equ 252              ; Video Memory Page Register
 border:        equ 254              ; Border colour in bits 6, 2-0
 keyboard:      equ 254              ; Main keyboard matrix
 
+clut_black:    equ &00
+clut_white:    equ &01
+clut_red:      equ &02
+clut_pink:     equ &03
+clut_cyan:     equ &04
+clut_orange:   equ &05
+clut_yellow:   equ &06
+clut_midyellow:equ &07
+clut_dkyellow: equ &08
+clut_green:    equ &09
+clut_midblue:  equ &0a
+clut_mazeblue: equ &0b              ; CLUT index for maze
+clut_brown:    equ &0c
+clut_ltpink:   equ &0d
+clut_pill:     equ &0e              ; CLUT index for power pill
+clut_grey:     equ &0f
+
+; SAM palette names from SAM User Guide
+pal_black:     equ 0
+pal_mediterra: equ 25               ; maze blue
+pal_dandruff:  equ 119              ; maze white
+pal_caucasian: equ 122              ; power pill
+
 rom0_off:      equ %00100000        ; LMPR bit to disable ROM 0
 mode_4:        equ %01100000        ; VMPR bits for mode 4
 pac_page:      equ 3+rom0_off
@@ -366,15 +389,16 @@ scr_page:      defb screen_1
 ;
 flash_maze:    ld  a,(&4440)        ; attribute of maze top-right
                cp  &1f
-               ld  a,25             ; blue
+               ld  a,pal_mediterra  ; maze blue
                jr  nz,maze_blue
 
                ld  a,64             ; blank tile
                ld  (&420d),a        ; clear left of crypt door
                ld  (&41ed),a        ; clear right of crypt door
 
-               ld  a,119            ; white
-maze_blue:     ld  bc,&0bf8
+               ld  a,pal_dandruff   ; maze white
+maze_blue:     ld  b,clut_mazeblue
+               ld  c,&f8
                out (c),a
                ret
 
@@ -383,7 +407,8 @@ maze_blue:     ld  bc,&0bf8
 ; pill locations, and checking the current attribute setting.
 ;
 flash_pills:   ld  de,&1410         ; &14=pill, &10=pill-on colour
-               ld  hl,&9f7a         ; &9f=alternative pill-on colour, &7a=SAM pill colour
+               ld  h,&9f            ; &9f=alternative pill-on colour
+               ld  l,pal_caucasian  ; pill colour
 
                ld  a,(&4064)        ; top-right
                cp  d
@@ -429,8 +454,9 @@ pill_6:        ld  a,(&4278)        ; bottom attract pill
                cp  h                ; alternative static colour
                jr  z,pill_on
 
-pill_off:      ld  l,0              ; black (hidden)
-pill_on:       ld  bc,&0ef8
+pill_off:      ld  l,pal_black      ; black (hidden)
+pill_on:       ld  b,clut_pill
+               ld  c,&f8
                out (c),l
                ret
 
@@ -928,7 +954,22 @@ colour_lp:     ld  a,(hl)
                jr  tile_drawn
 
 ; Look-up masks used to give the correct colour from a Pac-Man attribute
-text_cols:     defb &00,&22,&99,&33,&99,&44,&99,&55,&99,&66,&99,&99,&99,&99,&cc,&ff
+text_cols:     defb clut_black * &11
+               defb clut_red * &11
+               defb clut_green * &11
+               defb clut_pink * &11
+               defb clut_green * &11
+               defb clut_cyan * &11
+               defb clut_green * &11
+               defb clut_orange * &11
+               defb clut_green * &11
+               defb clut_yellow * &11
+               defb clut_green * &11
+               defb clut_green * &11
+               defb clut_green * &11
+               defb clut_green * &11
+               defb clut_brown * &11
+               defb clut_grey * &11
 
 ; The colour of ghost tiles depends on the attribute used
 ghost_tile:    ld  a,b

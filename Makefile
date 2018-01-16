@@ -12,7 +12,7 @@ sprites.bin: sprites.png
 	tile2sam.py -q --tiles 102 --clut $(CLUT) --pal sprites.png 12x12
 
 tiles.bin: tiles.png sprites.bin
-	tile2sam.py -q --tiles 252 --clut sprites.pal tiles.png 6x6
+	tile2sam.py -q --tiles 252 --clut $(CLUT) tiles.png 6x6
 
 sound.bin:
 	./freq.py sound.bin

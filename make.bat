@@ -6,7 +6,9 @@ if "%1"=="clean" goto clean
 
 set CLUT=0,127,34,123,85,106,110,96,6,68,29,25,99,122,126,119
 tile2sam.py -q --tiles 102 --clut %CLUT% --pal sprites.png 12x12
+if errorlevel 1 goto end
 tile2sam.py -q --tiles 252 --clut %CLUT% tiles.png 6x6
+if errorlevel 1 goto end
 
 if not exist sound.bin freq.py sound.bin
 
